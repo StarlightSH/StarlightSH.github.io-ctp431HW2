@@ -1,0 +1,171 @@
+﻿<!DOCTYPE html>
+
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title> Homework2 - Music Visualizer </title>
+</head>
+
+<body>
+<input id="audiofile" type="file"/>
+<h1 class="loader">Loading...</h1>
+<br>
+<br>
+<h2> References </h2>
+<ul>
+<li>https://codepen.io/Zeaklous/pen/bBJmbz</li>
+<li>https://p5js.org/examples/sound-measuring-amplitude.html</li>
+<li>https://www.openprocessing.org/sketch/571695</li>
+</ul>
+
+
+<style>
+body { 
+    margin: 0;
+    overflow: hidden;
+	color: black;
+}
+input {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+}
+.loader {
+    font-family: sans-serif;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50% -50%);
+    display: none;
+}
+.loader.loading  { display: block; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.5/p5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.5/addons/p5.sound.min.js"></script>
+<Script>
+var fft, // Allow us to analyze the song
+    numBars = 1024, // The number of bars to use; power of 2 from 16 to 1024
+    song; // The p5 sound object
+
+// Load our song
+var loader = document.querySelector(".loader");
+document.getElementById("audiofile").onchange = function(event) {
+    if(event.target.files[0]) {
+        if(typeof song != "undefined") { // Catch already playing songs
+            song.disconnect();
+            song.stop();
+        }
+        
+        // Load our new song
+        song = loadSound(URL.createObjectURL(event.target.files[0]));
+        loader.classList.add("loading");
+    }
+}
+
+var canvas;
+var cx, cy;
+var r= 300, dr=200;
+function setup() { // Setup p5.js
+    canvas = createCanvas(windowWidth, windowHeight);
+	cx = width/2;
+	cy = height/2;
+	analyzer = new p5.Amplitude();
+	analyzer.setInput(song);
+}
+
+function draw() {
+    background(80);
+    
+    if(typeof song != "undefined" 
+       && song.isLoaded() 
+       && !song.isPlaying()) { // Do once
+        loader.classList.remove("loading");
+        
+        song.play();
+        song.setVolume(0.5);
+
+        fft = new p5.FFT();
+        fft.waveform(numBars);
+        fft.smooth(0.85);
+		fft.setInput(song);
+    }
+    
+    if(typeof fft != "undefined") {
+        var spectrum = fft.analyze();
+
+
+        noStroke();
+		fill("rgb(0, 0, 0)");
+        for(var i = 0; i < numBars; i++) {
+            var x = map(i, 0, numBars, 0, width);
+            var h = -height + map(spectrum[i], 0, 255, height, 0);
+            rect(cx+x, height, width/(numBars*2), h);
+			rect(cx-x, height, width/(numBars*2), h);
+        }
+		var rms = analyzer.getLevel();
+		beginShape();
+		fill(0, 0, 0,0.8);
+		stroke(1000);
+		strokeWeight(1);
+		ellipse(cx, cy, 100+rms*3000, 100+rms*3000);
+		ellipse(cx, cy, 100+rms*300, 100+rms*300);
+		ellipse(cx, cy, 100+rms*30000, 100+rms*30000);
+		endShape();
+
+		var waveform = fft.waveform();// analyze the waveform
+
+
+		beginShape();
+		stroke(29, 207, 173);
+		strokeWeight(1);
+
+		for (var i = 0; i < waveform.length; i++){
+			var x = map(i, 0, waveform.length, 0, width);
+			var y = map(waveform[i], -1, 1, height, 0);
+			vertex(x, y);
+		}
+		endShape();
+
+
+
+
+
+
+		translate(cx, cy);
+		beginShape();
+		stroke(0,0, 255, 100);
+		strokeWeight(2);
+		for (var j =0; j<waveform.length; j+=15){
+			var ang = j*360/waveform.length;
+			var xx = r*cos(radians(waveform.length/ang));
+			var yy = r*sin(radians(ang*get.waveform*fft.waveform));
+			var aa = map(waveform[j], -1, 1, r-dr, r+dr)*cos(radians(ang));
+			var bb = map(waveform[j], -1, 1, r-dr, r+dr)*sin(radians(ang));
+			vertex(aa, bb);
+			push();
+			strokeWeight(5);
+			stroke(0,0, 255, 100);
+			line(xx, yy, aa, bb);
+			stroke(255);
+			strokeWeight(4);
+			point(aa,bb);
+			pop();
+		}
+		endShape();	
+
+
+
+
+	
+		
+	}
+}
+
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}
+</script>
+
+</body>
+</html>
